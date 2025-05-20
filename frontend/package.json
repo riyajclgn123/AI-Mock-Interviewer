@@ -1,0 +1,62 @@
+{
+    "type": "module",
+    "name": "learning-starter-web",
+    "version": "0.2.0",
+    "private": true,
+    "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@fortawesome/fontawesome-svg-core": "^6.7.2",
+        "@fortawesome/free-solid-svg-icons": "^6.7.2",
+        "@fortawesome/react-fontawesome": "^0.2.2",
+        "@mantine/core": "^8.0.1",
+        "@mantine/form": "^8.0.1",
+        "@mantine/hooks": "^8.0.1",
+        "@mantine/notifications": "^8.0.1",
+        "axios": "^1.9.0",
+        "react-router-dom": "^7.6.0",
+        "react-use": "^17.6.0"
+    },
+    "scripts": {
+        "start": "vite",
+        "build": "tsc && vite build",
+        "serve": "vite preview",
+        "postinstall": "patch-package"
+    },
+    "eslintConfig": {
+        "rules": {
+            "no-restricted-imports": [
+                "error",
+                {
+                    "name": "@mantine/notifications/lib/events",
+                    "message": "Please import from '@mantine/notifications' instead"
+                }
+            ]
+        },
+        "extends": [
+            "react-app",
+            "react-app/jest"
+        ]
+    },
+    "browserslist": {
+        "production": [
+            ">0.2%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 1 chrome version",
+            "last 1 firefox version",
+            "last 1 safari version"
+        ]
+    },
+    "devDependencies": {
+        "@types/react-dom": "^19.1.5",
+        "@vitejs/plugin-react-swc": "^3.9.0",
+        "postcss-preset-mantine": "^1.17.0",
+        "postcss-simple-vars": "^7.0.1",
+        "typescript": "^5.8.3",
+        "vite": "^6.3.5",
+        "vite-plugin-checker": "^0.9.3",
+        "vite-plugin-svgr": "^4.3.0"
+    }
+}
