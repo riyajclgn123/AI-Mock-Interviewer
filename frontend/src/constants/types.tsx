@@ -17,10 +17,10 @@ export type UserDto = {
   id: number;
   firstName: string;
   lastName: string;
-  userName: string;
-  email: string;
-  createDate: string;
-  updatedDate: string;
-  profilePictureUrl: string | null;
 
 };
+
+export type UserUpdateDto = {
+  firstName: string;
+  lastName: string;
+}

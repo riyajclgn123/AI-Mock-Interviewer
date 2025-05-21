@@ -16,8 +16,7 @@ function App() {
                 autoClose={3000}
                 limit={5}
             />
-            <Container
-                px={0}
+            <div
                 style={{
                     minHeight: "100vh",
                     display: "flex",
@@ -27,7 +26,7 @@ function App() {
               <AuthProvider>
                 <Routes />
               </AuthProvider>
-            </Container>
+            </div>
         </MantineProvider>
     );
 }

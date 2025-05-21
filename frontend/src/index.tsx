@@ -1,17 +1,18 @@
-import ReactDOM from "react-dom/client";
-import App from "./App";
-import { BrowserRouter as Router } from "react-router-dom";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { MantineProvider } from '@mantine/core';
+import { BrowserRouter as Router } from 'react-router-dom';
+import App from './App';
+import { MantineEmotionProvider } from '@mantine/emotion';
 
-//This is the base level of your app.
-//This is where you would put global things (like Router)
-
-const container = document.getElementById("root");
-
-// Create a root.
-const root = ReactDOM.createRoot(container as HTMLElement);
-
-root.render(
-  <Router>
-    <App />
-  </Router>
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+  <React.StrictMode>
+    <MantineProvider>
+       <MantineEmotionProvider>
+          <Router>
+        <App />
+      </Router>
+      </MantineEmotionProvider>
+    </MantineProvider>
+  </React.StrictMode>
 );

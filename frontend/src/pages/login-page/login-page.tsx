@@ -1,101 +1,109 @@
-import { ApiResponse } from "../../constants/types";
-import { useAsyncFn } from "react-use";
-import { PageWrapper } from "../../components/page-wrapper/page-wrapper";
-import { FormErrors, useForm } from "@mantine/form";
-import {
-  Alert,
-  Button,
-  Container,
-  Input,
-  Text,
-} from "@mantine/core";
-import api from "../../config/axios";
-import { showNotification } from "@mantine/notifications";
+import { useForm } from "@mantine/form";
+import { Button, Card, Container, Input, Text, useMantineColorScheme } from "@mantine/core";
+import { useAuth } from "../../authentication/use-auth";
+import { Navigate, useNavigate } from "react-router-dom";
+import { routes } from "../../routes";
+import { createStyles } from "@mantine/emotion";
 
 type LoginRequest = {
   userName: string;
   password: string;
 };
 
-type LoginResponse = ApiResponse<boolean>;
-
-//This is a *fairly* basic form
-//The css used in here is a good example of how flexbox works in css
-//For more info on flexbox: https://css-tricks.com/snippets/css/a-guide-to-flexbox/
-export const LoginPage = ({
-  fetchCurrentUser,
-}: {
-  fetchCurrentUser: () => void;
-}) => {
-
-  const form = useForm<LoginRequest>({
+export const LoginPage = ({ fetchCurrentUser }: { fetchCurrentUser: () => void }) => {
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const {classes} = useStyles();
+ 
+  const loginForm = useForm<LoginRequest>({
     initialValues: {
       userName: "",
       password: "",
     },
     validate: {
-      userName: (value) =>
-        value.length <= 0 ? "Username must not be empty" : null,
-      password: (value) =>
-        value.length <= 0 ? "Password must not be empty" : null,
+      userName: (value) => value.length <= 0 ? "Username must not be empty" : null,
+      password: (value) => value.length <= 0 ? "Password must not be empty" : null,
     },
   });
 
-  const [, submitLogin] = useAsyncFn(async (values: LoginRequest) => {
+  const handleLogin = (values: LoginRequest) => {
+    login(values.userName, values.password);
+    fetchCurrentUser();
+    navigate(routes.home);
+  };
 
-    const response = await api.post<LoginResponse>(`/api/authenticate`, values);
-    if (response.data.hasErrors) {
-      const formErrors: FormErrors = response.data.errors.reduce(
-        (prev, curr) => {
-          Object.assign(prev, { [curr.property]: curr.message });
-          return prev;
-        },
-        {} as FormErrors
-      );
-      form.setErrors(formErrors);
-    }
-
-    if (response.data.data) {
-      showNotification({ message: "Successfully Logged In!", color: "green" });
-      fetchCurrentUser();
-    }
-  }, []);
+  if (isAuthenticated) {
+    return <Navigate to={routes.home} />;
+  }
 
   return (
-    <PageWrapper >
-      <Container>
-        <Container px={0}>
-          {form.errors[""] && (
-            <Alert mb={'8px'} color="red">
-              <Text>{form.errors[""]}</Text>
-            </Alert>
-          )}
-          <form onSubmit={form.onSubmit(submitLogin)}>
-            <Container px={0}>
-              <Container mb={'8px'} px={0}>
-                <Container px={0}>
-                  <label htmlFor="userName">Username</label>
-                </Container>
-                <Input {...form.getInputProps("userName")} />
-                <Text c="red">{form.errors["userName"]}</Text>
-              </Container>
-              <Container mb={'8px'} px={0}>
-                <Container px={0}>
-                  <label htmlFor="password">Password</label>
-                </Container>
-                <Input type="password" {...form.getInputProps("password")} />
-                <Text c="red">{form.errors["password"]}</Text>
-              </Container>
+    <div style={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    }}>
+      <Card
+        shadow="sm"
+        padding="lg"
+        style={{
+          width: "100%",
+          maxWidth: "400px",
+          backgroundColor: "rgba(255, 255, 255, 0.9)",
+        }}
+      >
+        <form onSubmit={loginForm.onSubmit(handleLogin)}>
+          <Text className={classes.box} size="xl" style={{ marginBottom: "20px" }}>
+            Welcome Back
+          </Text>
 
-              <Container px={0}>
-                <Button mt={'8px'} type="submit">
-                  Login
-                </Button>
-              </Container>
-            </Container>
-          </form>
-        </Container>
-      </Container>
-    </PageWrapper>
+          <Input.Wrapper label="Username" style={{ marginBottom: "15px" }}>
+            <Input
+              placeholder="Enter your username"
+              {...loginForm.getInputProps("userName")}
+            />
+            {loginForm.errors.userName && (
+              <Text color="red" size="sm">
+                {loginForm.errors.userName}
+              </Text>
+            )}
+          </Input.Wrapper>
+
+          <Input.Wrapper label="Password" style={{ marginBottom: "25px" }}>
+            <Input
+              type="password"
+              placeholder="Enter your password"
+              {...loginForm.getInputProps("password")}
+            />
+            {loginForm.errors.password && (
+              <Text color="red" size="sm">
+                {loginForm.errors.password}
+              </Text>
+            )}
+          </Input.Wrapper>
+
+          <Button
+            type="submit"
+            fullWidth
+            style={{ marginTop: "10px" }}
+            variant="gradient"
+            gradient={{ from: 'indigo', to: 'violet' }}
+          >
+            Sign In
+          </Button>
+        </form>
+      </Card>
+    </div>
   );
 };
+
+const useStyles = createStyles((theme) => {
+   const { colorScheme } = useMantineColorScheme();
+  const isDark = colorScheme === "dark";
+  return {
+    box:{
+      display:"flex",
+    },
+  }
+})

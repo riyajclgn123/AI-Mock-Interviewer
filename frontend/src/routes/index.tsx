@@ -3,4 +3,8 @@ export const routes = {
   root: `/`,
   home: `/home`,
   user: `/user`,
+  practice: `/practice`,
+  feedback: `/feedback`,
+  history:`/history`,
+  interacting: `/interacting`,
 };

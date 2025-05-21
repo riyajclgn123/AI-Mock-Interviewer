@@ -27,14 +27,14 @@ import {
     useLocation,
     useNavigate,
 } from "react-router-dom";
-import logo from "../../assets/logodone.png";
+import logos from "../../assets/sitelogo.png";
 import { UserDto } from "../../constants/types";
 import { useAuth } from "../../authentication/use-auth";
-
+import { createStyles } from "@mantine/emotion";
 import { useEffect, useState } from "react";
 
 type PrimaryNavigationProps = {
-    user?: UserDto;
+      user: UserDto | null;
 };
 
 type NavigationItem = {
@@ -67,18 +67,33 @@ const navigation: NavigationItem[] = [
             to: routes.home,
         },
     },
-    // {
-    //   text: "User",
-    //   hide: false,
-    //   nav: {
-    //     to: routes.user,
-    //   },
-    // },
+    {
+      text: "Practice",
+      hide: false,
+      nav: {
+        to: routes.practice,
+      },
+    },
+    {
+      text: "Feedback",
+      hide: false,
+      nav: {
+        to: routes.feedback,
+      },
+    },
+    {
+      text: "History",
+      hide: false,
+      nav: {
+        to: routes.history,
+      },
+    },
 ];
 
 const DesktopNavigation = () => {
     const { pathname } = useLocation();
     const [active, setActive] = useState(navigation[0].nav?.to.toString());
+    
 
     useEffect(() => {
         setActive(pathname);
@@ -101,10 +116,11 @@ const DesktopNavigation = () => {
         root: {
             position: "relative" as const,
             margin: "0px 5px",
-            color: "#ced4da",
+            color: "#fafafa",
             textDecoration: "none",
             overflow: "hidden",
             transition: "color 0.3s ease",
+            
 
             "&::after": {
                 content: '""',
@@ -129,6 +145,8 @@ const DesktopNavigation = () => {
     };
 
     const linkActive = (theme: MantineTheme) => ({
+        background: 'linear-gradient(90deg,rgb(16, 244, 183) 0%,rgb(99, 128, 225) 100%)',
+        backgroundSize:"120%",
         "&, &:hover": {
             backgroundColor: "white",
             color: theme.variantColorResolver({
@@ -222,10 +240,8 @@ const DesktopNavigation = () => {
     );
 };
 
-export const PrimaryNavigation: React.FC<PrimaryNavigationProps> = ({
-    user,
-}) => {
-    const { logout } = useAuth();
+export const PrimaryNavigation: React.FC<PrimaryNavigationProps> = () => {
+     const { user, logout } = useAuth();
     const { colorScheme, toggleColorScheme } = useMantineColorScheme();
     const navigate = useNavigate();
     const theme = useMantineTheme();
@@ -250,6 +266,7 @@ export const PrimaryNavigation: React.FC<PrimaryNavigationProps> = ({
     const container = {
         root: {
             color: "#008b84",
+            backgroundColor: "#151515"
         },
     };
 
@@ -272,7 +289,7 @@ export const PrimaryNavigation: React.FC<PrimaryNavigationProps> = ({
                         <Image
                             styles={logo}
                             fallbackSrc="https://placehold.co/600x400?text=Placeholder"
-                            src={logo}
+                            src={logos}
                             alt="logo"
                         />
                     </NavLink>
@@ -288,7 +305,7 @@ export const PrimaryNavigation: React.FC<PrimaryNavigationProps> = ({
                                         color="white"
                                         style={{
                                             color: "white",
-                                            backgroundColor: "#52aead",
+                                            backgroundColor: "#76dadf",
                                         }}
                                     >
                                         {user.firstName.substring(0, 1)}
@@ -301,6 +318,10 @@ export const PrimaryNavigation: React.FC<PrimaryNavigationProps> = ({
                                     >
                                         {dark ? "Light mode" : "Dark mode"}
                                     </Menu.Item>
+                                    <Menu.Item
+                                       onClick={() => navigate(routes.user)}>
+                                        Profile
+                                       </Menu.Item>
                                     <Divider my={5} />
                                     <Menu.Item
                                         onClick={() => logout()}
@@ -317,3 +338,82 @@ export const PrimaryNavigation: React.FC<PrimaryNavigationProps> = ({
         </Title>
     );
 };
+
+const useStyles = createStyles((theme) => {
+  return {
+    pointer: {
+      cursor: "pointer",
+     
+      //border: `1px solid ${'#ffffff'}`,
+      transition: 'transform 0.2s ease',
+      '&:hover': {
+        transform: 'scale(1.1)',
+      },
+    },
+
+    logo: {
+      width: 50, 
+      height: 50, 
+      borderRadius: "50%", 
+      objectFit: "contain", 
+      boxShadow: theme.shadows.md,
+      transition: "transform 0.3s ease",
+      marginRight: 20,
+      backgroundColor: "transparent",
+      "&:hover": {
+        transform: "scale(1.05)",
+      },
+    },
+
+    paddedMenuItem: {
+      position: "relative",
+      margin: "0px 5px",
+      color: "#ced4da",
+      textDecoration: "none",
+      overflow: "hidden",
+      transition: "color 0.3s ease",
+    
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        width: "100%",
+        height: "2px",
+        backgroundColor: "#52aead",
+        transform: "scaleX(0)",
+        transformOrigin: "left",
+        transition: "transform 0.3s ease-in-out",
+      },
+    
+      "&:hover": {
+    backgroundColor:"transparent",
+        "&::after": {
+          transform: "scaleX(1.3)",
+        },
+      },
+    }
+,    
+    linkActive: {
+      "&, &:hover": {
+        backgroundColor:"white",
+        color: theme.variantColorResolver({
+          theme: theme,
+          color: "black",
+          variant: "light",
+        }).color,
+      },
+    },
+    desktopNav: {
+      height: NAVBAR_HEIGHT,
+      color: "black"
+    },
+    fullHeight: {
+      height: "100%",
+    },
+    container: {
+     
+      color: "#008b84"
+    },
+  };
+});
