@@ -6,13 +6,27 @@ import os
 import uuid
 import json
 import torch
+import re
+
+# --- Keywords ---
+TECHNICAL_KEYWORDS = [
+    "python", "java", "c++", "html", "css", "javascript", "react", "node", "typescript",
+    "sql", "mysql", "mongodb", "tensorflow", "pytorch", "linux", "git",
+    "docker", "kubernetes", "aws", "azure", "gcp", "flask", "django", "rest api",
+    "spring", "firebase", "nlp", "machine learning", "deep learning", "data science", "bash"
+]
+
+MAJOR_KEYWORDS = [
+    "computer science", "software engineering", "information technology",
+    "electrical engineering", "cybersecurity", "data science", "artificial intelligence", "information systems"
+]
 
 app = Flask(__name__)
 CORS(app)
 UPLOAD_FOLDER = 'resumes'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- Load Phi-2 model ---
+# --- Load Phi-2 Model ---
 model_id = "microsoft/phi-2"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -27,41 +41,79 @@ def extract_text_from_pdf(file):
     doc = fitz.open(stream=file.read(), filetype="pdf")
     return "\n".join([page.get_text() for page in doc])
 
-# --- Upload Resume ---
-@app.route("/upload-resume", methods=["POST"])
-def upload_resume():
+# --- Resume Quality Check ---
+def is_resume_good(resume_text):
+    lower_text = resume_text.lower()
+    if len(lower_text.split()) < 20:
+        return False
+
+    tech_terms = [word for word in TECHNICAL_KEYWORDS if word in lower_text]
+    has_major = any(major in lower_text for major in MAJOR_KEYWORDS)
+
+    return len(tech_terms) >= 4 and has_major  # Relaxed condition
+
+# --- Extract Only Clean Questions ---
+def extract_questions(text):
+    lines = text.strip().split("\n")
+    questions = []
+
+    for line in lines:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        # Remove things like "1. ", "Question 1: ", etc.
+        line = re.sub(r"^(question\s*)?\d+[.)\s:-]*", "", line, flags=re.IGNORECASE).strip()
+
+        # Accept if it ends with ? or has enough words
+        if line.endswith("?") or len(line.split()) >= 5:
+            questions.append(line)
+
+    return questions
+
+# --- Process Resume and Generate Questions ---
+@app.route("/process-resume", methods=["POST"])
+def process_resume():
     file = request.files.get("file")
-    if file is None:
+    if not file:
         return jsonify({"error": "No file uploaded"}), 400
+
     try:
-        text = extract_text_from_pdf(file)
-        return jsonify({"resumeText": text})
+        resume_text = extract_text_from_pdf(file)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to extract text: {str(e)}"}), 500
 
-# --- Generate Questions ---
-@app.route("/generate-questions", methods=["POST"])
-def generate_questions():
-    data = request.get_json()
-    resume = data.get("resumeText", "").strip()
-    if not resume:
-        return jsonify({"error": "Resume text is missing"}), 400
+    if not is_resume_good(resume_text):
+        return jsonify({
+            "error": "The provided resume lacks sufficient technical depth or a declared field of study. "
+                     "Please revise and upload a more detailed resume."
+        }), 200
 
+    # --- Best Prompt for AI Mock Interviewer ---
     prompt = (
-        f"Below is a resume:\n{resume}\n\n"
-        "Based on the resume, generate:\n"
-        "- 5 technical interview questions\n"
-        "- 3 behavioral interview questions\n\n"
-        "Questions:"
+        f"Resume:\n\n{resume_text}\n\n"
+        "Generate exactly 6 technical and 4 behavioral interview questions based ONLY on the content of this resume. "
+        "Ask questions related to the user's projects, technical skills, major, tools, or internship experience. "
+        "Avoid any instructions or commentary. Only return clean, direct questions—one per line."
     )
 
-    output = pipe(prompt, max_new_tokens=300, temperature=0.7, do_sample=True)[0]["generated_text"]
+    try:
+        output = pipe(prompt, max_new_tokens=700, temperature=0.7, do_sample=True)[0]["generated_text"]
+    except Exception as e:
+        return jsonify({"error": f"Model generation failed: {str(e)}"}), 500
+
+    # Clean output
     result = output.replace(prompt, "").strip()
-    questions = [line.strip("0123456789.:- ") for line in result.split("\n") if line.strip()]
+    questions = extract_questions(result) or []  # Prevent NoneType crash
 
-    return jsonify({"questions": questions[:8]})
+    if len(questions) < 6:
+        return jsonify({"error": "The AI could not generate enough meaningful questions. "
+                                 "Please ensure your resume includes technical details, skills, and your field of study."}), 200
 
-# --- Save Response ---
+    return jsonify({"questions": questions[:10]})  # 6 tech + 4 behavioral
+
+# --- Save Interview Response ---
 @app.route("/submit-response", methods=["POST"])
 def submit_response():
     data = request.get_json()
@@ -75,5 +127,6 @@ def submit_response():
 
     return jsonify({"status": "saved", "filename": os.path.basename(file_path)})
 
+# --- Run Server ---
 if __name__ == "__main__":
     app.run(port=5000, debug=False)
