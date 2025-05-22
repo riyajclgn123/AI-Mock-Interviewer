@@ -7,4 +7,6 @@ export const routes = {
   feedback: `/feedback`,
   history:`/history`,
   interacting: `/interacting`,
+  signup: `/signup`,
+  login: `/login`,
 };

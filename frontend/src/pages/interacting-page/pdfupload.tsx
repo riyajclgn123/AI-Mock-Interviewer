@@ -3,6 +3,7 @@ import { Dropzone, MIME_TYPES } from "@mantine/dropzone";
 import { Button, Text, Group, Container, Textarea } from "@mantine/core";
 import { IconUpload, IconFile } from "@tabler/icons-react";
 import axios from "axios";
+import { EnvVars } from "../../config/env-vars";
 
 export const PdfUploadPage = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -11,37 +12,48 @@ export const PdfUploadPage = () => {
   const [responses, setResponses] = useState<Record<string, string>>({});
 
   const handleUpload = async () => {
-  if (!file) return;
+    if (!file) return;
 
-  const formData = new FormData();
-  formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
+    setUploading(true);
 
-  setUploading(true);
+    try {
+      const response = await axios.post(
+        `${EnvVars.apiBaseUrl}/process-resume`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-  try {
-    const response = await axios.post("http://localhost:5000/upload-resume", formData);
-    const resumeText = response.data.resumeText;
+      if (response.data.questions) {
+        setQuestions(response.data.questions);
+      } else {
+        alert(response.data.error || "No questions returned.");
+      }
+    } catch (error) {
+      console.error("Upload failed", error);
+      alert("Upload failed. Check backend connection.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
-    const qRes = await axios.post("http://localhost:5000/generate-questions", {
-      resumeText: resumeText,
-    });
-
-    setQuestions(qRes.data.questions);
-    console.log("resumeText", resumeText);
-  } catch (error) {
-    console.error("Upload failed", error);
-    alert("Upload failed. Check backend connection.");
-  } finally {
-    setUploading(false);
-  }
-};
-
- 
-
-  const submitAnswer = async (question: string) => {
-    const answer = responses[question];
-    await axios.post("http://localhost:5000/submit-response", { question, answer });
-    alert("Response saved!");
+  const submitAnswer = async () => {
+    try {
+      await axios.post(`${EnvVars.apiBaseUrl}/submit-response`, {
+        userId: JSON.parse(localStorage.getItem("user") || "{}")?.userId,
+        questions,
+        answers: questions.map((q) => responses[q] || ""),
+      });
+      alert("All responses saved!");
+    } catch (err) {
+      console.error("Submit failed:", err);
+      alert("Failed to submit responses.");
+    }
   };
 
   return (
@@ -67,30 +79,37 @@ export const PdfUploadPage = () => {
         </Group>
       </Dropzone>
 
-      <Button mt="md" onClick={handleUpload} disabled={!file || uploading} loading={uploading}>
+      <Button
+        mt="md"
+        onClick={handleUpload}
+        disabled={!file || uploading}
+        loading={uploading}
+      >
         Upload Resume
       </Button>
 
       {questions.length > 0 && (
         <div style={{ marginTop: "2rem" }}>
-          <Text size="lg" >
-            Generated Interview Questions
-          </Text>
+          <Text size="lg">Generated Interview Questions</Text>
           {questions.map((q, index) => (
             <div key={index} style={{ marginTop: "1rem" }}>
-              <Text><strong>Q{index + 1}:</strong> {q}</Text>
+              <Text>
+                <strong>Q{index + 1}:</strong> {q}
+              </Text>
               <Textarea
                 placeholder="Type your answer here..."
                 autosize
                 minRows={2}
                 value={responses[q] || ""}
-                onChange={(e) => setResponses({ ...responses, [q]: e.currentTarget.value })}
+                onChange={(e) =>
+                  setResponses({ ...responses, [q]: e.currentTarget.value })
+                }
               />
-              <Button mt="xs" onClick={() => submitAnswer(q)}>
-                Submit Answer
-              </Button>
             </div>
           ))}
+          <Button mt="xl" onClick={submitAnswer}>
+            Submit All Answers
+          </Button>
         </div>
       )}
     </Container>

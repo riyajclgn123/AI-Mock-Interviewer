@@ -71,7 +71,7 @@ const navigation: NavigationItem[] = [
       text: "Practice",
       hide: false,
       nav: {
-        to: routes.practice,
+        to: routes.interacting,
       },
     },
     {

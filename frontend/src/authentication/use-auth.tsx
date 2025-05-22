@@ -1,95 +1,47 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import api from "../config/axios";
 import { UserDto } from "../constants/types";
-import { LoginPage } from "../pages/login-page/login-page";
-import { Loader } from "@mantine/core";
 
-const currentUser = "currentUser";
-
-type AuthState = {
+type AuthContextType = {
   user: UserDto | null;
-  login: (username: string, password: string) => void;
-  logout: () => void;
-  refetchUser: () => void;
   isAuthenticated: boolean;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
 };
 
-const INITIAL_STATE: AuthState = {
-  user: null,
-  login: () => {},
-  logout: () => {},
-  refetchUser: () => {},
-  isAuthenticated: false,
-};
-
-export const AuthContext = createContext<AuthState>(INITIAL_STATE);
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<UserDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    const storedUser = sessionStorage.getItem(currentUser);
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
-  }, []);
+  const login = async (username: string, password: string) => {
+  try {
+    const response = await api.post<UserDto>("/api/login", { username, password });
+    setUser(response.data);
+    localStorage.setItem("user", JSON.stringify(response.data));
+  } catch (err) {
+    console.error("Login failed:", err);
+    throw err; // Let the caller handle it (e.g., show error message)
+  }
+};
 
-  const login = (username: string, password: string) => {
-    const mockUser: UserDto = {
-      id: 1,
-      firstName: "Mock",
-      lastName: "User",
-    };
-    
-    setUser(mockUser);
-    setIsAuthenticated(true);
-    sessionStorage.setItem(currentUser, JSON.stringify(mockUser));
-  };
 
   const logout = () => {
     setUser(null);
-    setIsAuthenticated(false);
-    sessionStorage.removeItem(currentUser);
+    localStorage.removeItem("user");
   };
 
-  const refetchUser = () => {
-    const storedUser = sessionStorage.getItem(currentUser);
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
-  };
-
-  if (loading) {
-    return <Loader />;
-  }
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) setUser(JSON.parse(stored));
+  }, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        refetchUser,
-        isAuthenticated,
-      }}
-    >
-      {isAuthenticated ? children : <LoginPage fetchCurrentUser={refetchUser} />}
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+      {children}
     </AuthContext.Provider>
   );
 };
 
-export function useAuth(): AuthState {
-  return useContext(AuthContext);
-}
-
-export function useUser(): UserDto {
-  const { user } = useContext(AuthContext);
-  if (!user) {
-    throw new Error(`useUser must be used within an authenticated app`);
-  }
-  return user;
-}
+export const useAuth = () => useContext(AuthContext);
+export const useUser = () => useAuth().user!;
